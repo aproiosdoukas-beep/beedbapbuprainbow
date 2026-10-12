@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1f4f8a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="NATO Explained">
+<meta name="robots" content="noindex">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<title>NATO Explained</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,500;6..72,600&family=Public+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one column. A sticky player deck on top, episodes as a compact rail, transcript below. */
+:root {
+  --bg: #eef1f4;
+  --surface: #ffffff;
+  --ink: #18222e;
+  --muted: #586678;
+  --line: #d3dae2;
+  --accent: #1f4f8a;      /* Alliance blue */
+  --accent-soft: #e2ebf6;
+  --host: #8a5a14;        /* host voice marker, brass */
+  --font-display: "Newsreader", Georgia, "Times New Roman", serif;
+  --font-body: "Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #10161e; --surface: #18212c; --ink: #e6ebf1; --muted: #98a5b5; --line: #2a3644;
+    --accent: #7fb0ec; --accent-soft: #1d2f45; --host: #d9a85a; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #10161e; --surface: #18212c; --ink: #e6ebf1; --muted: #98a5b5; --line: #2a3644;
+  --accent: #7fb0ec; --accent-soft: #1d2f45; --host: #d9a85a; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.55; }
+.wrap { max-width: 760px; margin: 0 auto; padding-inline: 16px; padding-block: 20px 48px; display: grid; gap: 18px; }
+header h1 { font-family: var(--font-display); font-weight: 600; font-size: clamp(1.6rem, 4.5vw, 2.2rem); line-height: 1.15; margin: 0; text-wrap: balance; }
+header p { margin: 6px 0 0; color: var(--muted); max-width: 62ch; }
+.eyebrow { font-family: var(--font-mono); font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+
+.deck { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; display: grid; gap: 10px; box-shadow: 0 6px 18px -14px rgba(10, 20, 35, .5); }
+.now { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; flex-wrap: wrap; }
+.now h2 { font-family: var(--font-display); font-weight: 600; font-size: 1.2rem; margin: 0; min-width: 0; }
+.ref { font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
+.controls { display: flex; gap: 8px; align-items: center; }
+.controls .mode { margin-left: auto; }
+@media (max-width: 480px) { .deck { padding: 10px 12px; gap: 8px; } .btn { padding: 6px 10px; } .controls .mode span.lbl { display: none; } .now h2 { font-size: 1.05rem; } }
+.ln { scroll-margin-top: 200px; }
+button, select { font: inherit; color: inherit; }
+.btn { border: 1px solid var(--line); background: var(--bg); border-radius: 8px; padding: 8px 12px; cursor: pointer; min-height: 40px; }
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); color: var(--surface); border-color: var(--accent); font-weight: 600; min-width: 96px; }
+.btn:focus-visible, .ep:focus-visible, .ln:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+select { border: 1px solid var(--line); background: var(--bg); border-radius: 8px; padding: 8px; min-height: 40px; }
+.bar { height: 6px; background: var(--accent-soft); border-radius: 3px; overflow: hidden; cursor: pointer; }
+.bar i { display: block; height: 100%; width: 0; background: var(--accent); }
+.times { display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.mode { display: flex; gap: 6px; align-items: center; font-size: 13px; color: var(--muted); flex-wrap: wrap; }
+.mode label { display: inline-flex; gap: 5px; align-items: center; cursor: pointer; }
+.note { font-size: 12.5px; color: var(--muted); margin: 0; }
+
+.eps { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; }
+.ep { text-align: left; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; cursor: pointer; display: grid; gap: 2px; min-width: 0; }
+.ep[aria-current="true"] { border-color: var(--accent); background: var(--accent-soft); }
+.ep b { font-weight: 600; font-size: 14px; }
+.ep span { font-family: var(--font-mono); font-size: 11.5px; color: var(--muted); }
+
+.transcript { display: grid; gap: 2px; }
+.ln { display: grid; grid-template-columns: 52px 1fr; gap: 10px; padding: 8px 10px; border-radius: 8px; cursor: pointer; border-left: 3px solid transparent; }
+.ln:hover { background: var(--surface); }
+.ln.on { background: var(--surface); border-left-color: var(--accent); }
+.who { font-family: var(--font-mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding-top: 3px; }
+.ln.host .who { color: var(--host); }
+.ln.host p { color: var(--muted); font-style: italic; }
+.ln p { margin: 0; max-width: 65ch; min-width: 0; }
+footer { font-size: 12.5px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 12px; }
+@media (prefers-reduced-motion: no-preference) { .bar i { transition: width .25s linear; } }
+</style>
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)} body{margin:0}</style>
+</head>
+<body>
+
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">NATO YPP Legal Affairs · Study audio</div>
+    <h1>NATO, explained in ten episodes</h1>
+    <p>How the pieces fit together, how the money works, how the Treaty articles connect, what NATO lawyers do, where NATO is heading, your three rotations and how they join up, and how to write your answers. Ideas, not trivia.</p>
+  </header>
+
+  <section class="deck" aria-label="Player">
+    <div class="now"><h2 id="nowTitle">Episode 1</h2><span class="ref" id="nowRef"></span></div>
+    <div class="controls">
+      <button class="btn" id="prev" aria-label="Previous line">◀◀</button>
+      <button class="btn primary" id="play">Play</button>
+      <button class="btn" id="next" aria-label="Next line">▶▶</button>
+      <label class="mode" for="speed"><span class="lbl">Speed</span>
+        <select id="speed"><option value="0.9">0.9×</option><option value="1" selected>1×</option><option value="1.15">1.15×</option><option value="1.3">1.3×</option><option value="1.5">1.5×</option></select>
+      </label>
+    </div>
+    <div class="bar" id="bar" role="slider" aria-label="Position" tabindex="0"><i id="fill"></i></div>
+    <div class="times"><span id="tNow">0:00</span><span id="tLine"></span><span id="tAll">0:00</span></div>
+    <div class="mode" role="radiogroup" aria-label="Voices">
+      <span>Voices:</span>
+      <label><input type="radio" name="mode" id="modeRec" value="rec" checked> Recorded</label>
+      <label><input type="radio" name="mode" id="modeTts" value="tts"> Browser</label>
+    </div>
+    <p class="note" id="recNote">Recorded voices keep playing with your phone screen off.</p>
+    <p class="note" id="ttsNote" hidden></p>
+  </section>
+
+  <nav class="eps" id="eps" aria-label="Episodes"></nav>
+
+  <section class="transcript" id="transcript" aria-label="Transcript"></section>
+
+  <footer>Tap any line to play from there. The page remembers where you stopped in each episode. Learn the content, then write test answers in your own words, and close this page before the test starts.</footer>
+</div>
+
+<audio id="audio" preload="metadata"></audio>
+
+<script>
+const EPISODES = [{"title": "How the pieces of NATO fit together", "ref": "Foundations", "mp3": "audio/NATO-Explained-01-How-the-pieces-of-NATO-fit-together.mp3", "duration": 309.5, "times": [3.91, 14.68, 36.25, 39.3, 57.38, 59.64, 82.02, 84.22, 100.5, 103.36, 123.78, 148.67, 172.59, 175.47, 198.52, 202.19, 228.11, 231.31, 265.82, 269.2, 295.23, 297.77], "lines": [[1, "This series is about understanding how NATO works, not memorising facts. So let's start simply. When people say NATO, what are they actually talking about?"], [2, "They usually mean two different things at once. The first is an alliance: a promise between countries, written in a short treaty, that they will defend each other. The second is an organisation: the buildings, staff, budgets and agencies the countries created to make that promise real. The alliance is the commitment. The organisation is the machinery."], [1, "Who is in charge of the machinery?"], [2, "The countries themselves. NATO is intergovernmental, which means it has no power of its own above its members. Everything is decided by the Allies together, and every decision needs all of them to agree. There is no voting and no majority. If one Ally objects, nothing moves."], [1, "So where do they meet to agree?"], [2, "In the North Atlantic Council. It is the one body the Treaty itself creates, and it sits at the top of everything. Each Ally has an ambassador in Brussels, and those ambassadors meet as the Council every week. Ministers and heads of government sit in the same Council at higher-level meetings and summits, but it is the same body and its decisions carry the same weight."], [1, "And the Secretary General?"], [2, "The Secretary General chairs the Council and tries to build agreement among the Allies. He is also the public face of NATO, and he runs the civilian staff. But he is a servant of the Council, not a president. He cannot decide anything the Allies have not agreed."], [1, "Underneath the Council, what is there?"], [2, "Think of three branches. The first is the political and civilian branch: committees of national representatives that prepare decisions, and the International Staff at headquarters in Brussels who draft papers, run programmes and advise. The Office of Legal Affairs sits here, advising the Secretary General and the Council."], [2, "The second branch is military. The Military Committee brings together the Allies' most senior military officers and gives military advice to the Council. Below it are two strategic commands. Allied Command Operations, at SHAPE in Belgium, plans and runs operations today. Allied Command Transformation, in Norfolk, Virginia, prepares the forces of tomorrow. That second one is your Year Two."], [2, "The third branch is the agencies. These are specialist bodies that deliver services to NATO and to Allies. One handles communications, I T and cyber, the N C I A, which is your Year One. Another handles logistics and procurement, the N S P A. There are also bodies for science and for standards. And there is DIANA, the innovation accelerator, which is your Year Three."], [1, "Does NATO have its own army?"], [2, "No, and this is one of the most important things to understand. The forces belong to the countries. When the Allies decide to act, they assign national forces to NATO commanders for a mission. NATO's command structure is the skeleton that lets those forces work as one. NATO owns very little itself, a few shared assets such as surveillance aircraft and networks."], [1, "How does a decision actually move through all this?"], [2, "A division or a command drafts a paper. A committee of national representatives negotiates it, often line by line, because each capital has its own view. When the text is ready, it goes to the Council, often under what is called the silence procedure: the text is circulated and becomes agreed unless an Ally objects by a deadline. The most important decisions are then endorsed by leaders at a summit."], [1, "Why does consensus matter so much?"], [2, "Because it is the source of NATO's legitimacy. A decision that all Allies accepted is one every Ally can stand behind, and that is what makes the promise of collective defence believable. The cost is speed. One Ally can delay things, as happened when Türkiye and Hungary held up Sweden's membership. Lawyers notice something else: consensus is a practice, not a rule written in the Treaty. And because no Ally is bound by something it did not agree to, most of what NATO decides is politically binding rather than legally binding."], [1, "So how do the three postings sit in that picture?"], [2, "The N C I A sits in the agencies branch. It is the technology provider. Allied Command Transformation, through its headquarters H Q Sact, sits in the military branch. It is the thinker and developer of future forces. DIANA is a newer body under the Council. It finds and accelerates start-ups with technology that could help defence. All three are links in one chain, which we come back to in the final episode."], [1, "One sentence to close?"], [2, "NATO is a promise between countries, run by consensus, with a small organisation that plans, coordinates and supplies, while the real strength stays with the Allies themselves."]]}, {"title": "How NATO is paid for", "ref": "Money", "mp3": "audio/NATO-Explained-02-How-NATO-is-paid-for.mp3", "duration": 274.7, "times": [3.16, 9.22, 30.41, 38.6, 41.06, 64.44, 67.02, 81.08, 84.09, 103.08, 105.37, 141.1, 143.83, 162.56, 167.11, 189.74, 193.2, 219.87, 222.58, 255.88, 257.69], "lines": [[1, "This episode is about money, but as ideas, not numbers. How is NATO paid for?"], [2, "Through two kinds of contribution. The first, and by far the biggest, is indirect. Each Ally pays for its own armed forces, and when it sends them on a NATO mission, it carries the cost. NATO's phrase for this is that costs lie where they fall. So most of NATO's real strength is paid for in national defence budgets, not in NATO's own accounts."], [2, "The second kind is direct: money the Allies pay into NATO for things that serve all of them together. That is called common funding."], [1, "What does common funding pay for?"], [2, "Three main things. There is a civil budget for the headquarters in Brussels and its civilian staff. There is a military budget for the command structure, for running shared operations and for shared assets. And there is an investment programme for infrastructure, such as command centres, airfields, fuel systems and communication networks, that no single Ally would build alone but all of them need."], [1, "Who pays how much into those?"], [2, "Every Ally pays a share, set by a formula based on the size of its economy. Bigger economies pay more. The principle is fairness: everyone contributes in proportion to what they can afford, so everyone has a stake."], [1, "What if only some Allies want something?"], [2, "Then they use joint funding. A group of Allies agrees to fund a programme together, under its own rules, and only they pay and only they take part. Shared surveillance aircraft, helicopters and the strategic airlift fleet in Hungary work like that. It lets willing Allies go further without forcing everyone in."], [1, "And there are other models?"], [2, "Two more matter for you. The first is customer funding. Some agencies, especially the N C I A and the N S P A, are paid by their customers for specific services. The customers are NATO commands, which pay out of the common budgets, and individual Allies, which pay out of their own national budgets. The agency charges what the work costs, with no profit and no loss. The second is trust funds: voluntary pots that Allies and partners pay into for a specific purpose, such as support to Ukraine or clearing old weapons and mines in partner countries."], [1, "Who keeps control of all this money?"], [2, "The Allies. The Council approves the budgets. Committees of national representatives set ceilings, review spending and approve investment projects. And an independent board of auditors checks the accounts of every NATO body, including the agencies and DIANA, and reports back to the Allies."], [1, "Then there are the national spending targets everyone talks about."], [2, "Those are separate from NATO's own budgets. They are promises about what each Ally spends on its own defence. First the Allies agreed to aim for two percent of their economy, later they made two percent a floor, and in twenty twenty-five they agreed to reach five percent by twenty thirty-five, split between core defence and wider resilience such as infrastructure and industry."], [1, "Can NATO make an Ally meet that target?"], [2, "No. The Treaty, in Article Three, obliges Allies to keep up their capacity to defend themselves, but it names no figure. The spending pledge is a political commitment that interprets Article Three. It is not a new legal obligation. There is no court, no fine and no way to expel an Ally that misses it. What works instead is reporting, peer pressure in the Council, and defence planning targets that each Ally is expected to meet."], [1, "Where do lawyers come into the money?"], [2, "In several places. Common money must be spent under NATO's financial rules, so contracts paid with it must be awarded through fair competition, open only to firms from the Allies that are paying. That is why procurement law matters so much at the agencies. Customer funding needs written agreements with every customer, setting out what is delivered, at what price and who carries the risk. Trust funds need agreements with donors and partners. And every rule is checked by the auditors, so the legal paperwork has to stand up to scrutiny."], [1, "So the big picture?"], [2, "Allies pay for their own forces, share the cost of what serves everyone, club together for what some want, buy services from the agencies when they need them, and keep firm control through committees and auditors. The lawyers make sure the money is committed and spent within the rules."]]}, {"title": "The Treaty, and how the articles work together", "ref": "The Treaty", "mp3": "audio/NATO-Explained-03-The-Treaty-and-how-the-articles-work-together.mp3", "duration": 332.1, "times": [4.55, 10.97, 26.54, 28.42, 53.22, 63.44, 66.15, 100.85, 103.16, 127.27, 159.43, 163.17, 188.28, 189.88, 212.05, 213.76, 236.57, 238.34, 268.84, 286.66, 289.9, 305.28, 307.21], "lines": [[1, "This episode goes through the North Atlantic Treaty, but as a system. How should we think about it?"], [2, "As a short, tightly built machine with fourteen articles. It was signed in nineteen forty-nine, and it has never been amended in substance. The best way to understand it is in groups: the frame, the promise, the machinery, and the membership rules."], [1, "Start with the frame."], [2, "Articles One and Seven put NATO inside the United Nations system. Article One says the Allies will settle disputes peacefully and will not use force in ways the U N Charter forbids. Article Seven says nothing in the Treaty affects their rights and duties under the Charter, or the main responsibility of the Security Council for peace. Together they say: NATO is not above international law. It operates within it."], [2, "Article Eight adds that Allies will not take on international commitments that conflict with this Treaty. It protects the promise from being undercut by other deals."], [1, "Then what comes before the promise?"], [2, "Articles Two and Three are about strength in peacetime. Article Two is the non-military article. Allies will strengthen their free institutions and try to remove conflict in their economic policies. Today it is the natural hook for removing defence trade barriers between Allies. Article Three is the self-help article. Each Ally will keep up and develop its own capacity, and the collective capacity, to resist armed attack. It is the legal root of spending pledges, resilience and defence planning, even though it names no figures."], [1, "And then the promise itself."], [2, "Articles Four and Five work as a pair. Article Four is consultation. Whenever any Ally believes its territory, independence or security is threatened, the Allies will consult together. Any single Ally can trigger it on its own judgement, and it has been used many times, most recently after drone and airspace incursions. It is the alliance's early warning and crisis tool."], [2, "Article Five is collective defence. An armed attack against one or more Allies in Europe or North America is considered an attack against them all. Each Ally will then assist the attacked Ally by taking the action it judges necessary, which can include armed force. It is an exercise of the right of collective self-defence in Article Fifty-One of the U N Charter, and measures must be reported to the Security Council. It has been invoked once, after the attacks of September two thousand and one."], [1, "What is the key legal point about Article Five?"], [2, "The obligation to assist is binding, but the form of assistance is left to each Ally. Armed force is included, not required. That is why the strength of Article Five depends on political will as much as on law. And notice how the pieces fit: Article Three builds the capacity, Article Four lets Allies talk before a crisis becomes an attack, and Article Five is the promise if an attack comes."], [1, "Article Six?"], [2, "Article Six draws the map for Article Five. It covers Allies' territory in Europe and North America, Türkiye, Allied islands in the North Atlantic north of the Tropic of Cancer, and Allied forces, ships and aircraft in those areas and the Mediterranean. So an attack on Allied forces far away, for example in Ukraine, would fall outside it."], [1, "And the machinery?"], [2, "Article Nine. It creates the Council and lets it set up whatever subsidiary bodies are needed. That single sentence is the legal root of the whole organisation: the committees, the commands, the agencies and DIANA all trace back to it. The details of status, immunities and staff come later, in separate agreements such as the Ottawa Agreement and the Paris Protocol."], [1, "Then membership."], [2, "Article Ten lets the Allies, by unanimous agreement, invite any other European state that can further the Treaty's principles and contribute to security. It is the only place the Treaty demands unanimity. Each new member then signs an accession protocol that every Ally must ratify. Article Eleven says the Treaty is ratified and carried out according to each country's constitutional processes, which is why national parliaments keep their role, even under Article Five."], [2, "Article Twelve allows the Treaty to be reviewed, though it never has been formally. Article Thirteen allows an Ally to leave on one year's notice. None ever has. Article Fourteen makes the English and French texts equally authentic, which is why NATO works in both languages."], [1, "So how do they relate in one sentence?"], [2, "The Treaty sits inside the U N Charter, asks Allies to stay strong in peacetime, gives them a duty to consult and a duty to defend each other within a defined area, creates a Council to run it all, and controls who can join and leave."], [1, "And what is binding?"], [2, "The Treaty is a binding treaty. So are the agreements that give NATO its status and immunities. Inside the organisation, rules such as the staff regulations and financial rules bind NATO's own bodies and staff. Everything else, including the Strategic Concept, summit declarations and spending pledges, is political. It matters enormously, but it rests on consensus and pressure, not on courts."]]}, {"title": "How law works inside NATO, and what NATO lawyers do", "ref": "Law and lawyers", "mp3": "audio/NATO-Explained-04-How-law-works-inside-NATO-and-what-NATO-lawyers-do.mp3", "duration": 319.9, "times": [5.42, 11.97, 33.24, 36.85, 71.32, 74.46, 98.99, 103.43, 136.62, 139.74, 166.82, 168.74, 203.57, 207.01, 231.41, 236.22, 271.43, 273.63, 300.2, 304.68], "lines": [[1, "This episode is about the legal side of NATO. Why does an alliance need lawyers at all?"], [2, "Because NATO is not only a political promise. It is also a legal person. It signs contracts, employs thousands of people, owns property, runs networks, and operates in dozens of countries. Every one of those activities raises legal questions, and the answers are unusual because NATO is an international organisation."], [1, "What does it mean that NATO is a legal person?"], [2, "It means NATO can act in its own name: make contracts, buy property and take part in legal proceedings. The civilian organisation gets this from the Ottawa Agreement. The two military strategic headquarters, SHAPE and H Q Sact, each get their own personality from the Paris Protocol. Agencies and DIANA share the civilian organisation's personality. Smaller headquarters and Centres of Excellence have none of their own. So the first question in almost any legal task is: who is the legal person here, and who is allowed to sign for it?"], [1, "What are immunities and why do they matter?"], [2, "Immunities protect NATO from being controlled by any one country. NATO cannot normally be sued in national courts, its property cannot be seized, its archives cannot be searched, and it does not pay national taxes on its official activities. Staff are protected for their official acts. The reason is independence: thirty-two countries share NATO, so no single host country's courts should be able to steer it."], [1, "But that sounds unfair to someone who has a dispute with NATO."], [2, "That is exactly the tension courts look at. European human rights case law, starting with Waite and Kennedy, accepts immunity only if the person has a reasonable alternative way to have the dispute heard. So NATO builds those alternatives. Staff go to the NATO Administrative Tribunal. Contractors go to arbitration under the contract. Losing bidders use a complaints procedure. A lot of NATO legal work is about keeping those alternatives in good order, because they are what keep immunity defensible in court."], [1, "What kinds of law does NATO deal with?"], [2, "Two broad families. The first is public international law: the Treaty, the use of force, the law of armed conflict, status of forces, and agreements with countries and other organisations. The second is the organisation's own internal law: staff regulations, financial rules, procurement rules and policies on data, security and conduct. Around both sits a lot of commercial work, because NATO buys a great deal of technology and services."], [1, "Who are the lawyers?"], [2, "There is no single legal department. At headquarters in Brussels, the Office of Legal Affairs advises the Secretary General, the staff and the Council, drafts agreements, represents NATO in litigation and brings Allies' government lawyers together. The military side has its own legal advisers, at the Military Committee's staff, at SHAPE, at H Q Sact and at commands in the field. Each agency and DIANA has its own legal office, acting like in-house counsel for that body. They coordinate, but each advises its own leadership."], [1, "What does a NATO lawyer's day look like, broadly?"], [2, "It is a mix of three things. First, enabling: helping colleagues get things done lawfully, such as buying a system, signing an agreement with a country, or running an exercise. Second, protecting: making sure contracts do not give away immunities, intellectual property, data or money that NATO should keep. Third, defending: answering complaints, staff appeals, arbitration claims and court summonses."], [1, "What about agreements with countries, the memoranda of understanding?"], [2, "NATO uses many of them, and the key legal skill is knowing whether a text is meant to bind. Many are deliberately non-binding: political arrangements that set out how parties intend to cooperate, written with words like will rather than shall, and with disputes settled by talking rather than in court. Others, especially where money, liability or tax exemptions are involved, are binding and may even need ratification by a national parliament. A lawyer must spot which one is in front of them, make the wording match, and check that the person signing has authority."], [1, "Is any of this changing?"], [2, "Yes. As NATO spends more and buys more together, legal work shifts from drafting individual contracts to designing standard terms, deciding when exceptions are allowed, structuring deals for several countries at once, managing contracts after they are signed, and protecting integrity against fraud. NATO is also writing its own rules for data, cloud and artificial intelligence, which lawyers turn into contract terms and policies."], [1, "So what is the purpose of NATO legal work in one line?"], [2, "To let NATO act quickly and effectively while staying within the law and protecting what makes it independent: its immunities, its control over its data and property, fair treatment of Allies' industries, and accountability for common money."]]}, {"title": "Where NATO is heading, and its biggest challenges", "ref": "Direction", "mp3": "audio/NATO-Explained-05-Where-NATO-is-heading-and-its-biggest-challenges.mp3", "duration": 294.6, "times": [4.7, 10.2, 46.53, 50.14, 80.1, 82.11, 108.25, 139.35, 142.38, 168.28, 189.74, 215.86, 220.08, 244.7, 247.56, 278.34, 280.48], "lines": [[1, "This episode is about direction. What is NATO trying to do right now?"], [2, "Its guiding document is the Strategic Concept agreed in Madrid in twenty twenty-two. It sets three core tasks. Deterrence and defence: making any attack on an Ally pointless or too costly. Crisis prevention and management: dealing with crises beyond NATO's borders. And cooperative security: working with partners, keeping the door open to new members, and supporting arms control. The Concept says plainly that the Euro-Atlantic area is not at peace, names Russia as the most significant and direct threat, and terrorism as the most direct asymmetric one."], [1, "How has NATO changed in the last ten years?"], [2, "It has gone back to its original job. For two decades after the Cold War, NATO focused on missions far away, such as Afghanistan. After Russia seized Crimea in twenty fourteen, and much more after the full-scale invasion of Ukraine in twenty twenty-two, the focus returned to defending Allied territory. That means plans for each region, forces ready to move quickly, troops stationed on the eastern flank, and patrols to protect the Baltic Sea and undersea cables."], [1, "What are the main trends?"], [2, "Five are worth understanding. The first is money. Allies have moved from aiming at two percent of their economy to a pledge of five percent by twenty thirty-five. The second is industry and speed. Having money is not enough if factories cannot produce weapons and ammunition fast enough, so NATO is pushing joint buying, removing trade barriers between Allies, and adopting new technology within about two years instead of a decade."], [2, "The third is digital transformation. Future warfare depends on data, networks, cloud and artificial intelligence, so NATO is building shared digital infrastructure and writing its own rules for data and A I. The fourth is support to Ukraine, structured so that NATO helps coordinate aid and training without becoming a party to the war. The fifth is burden-shifting: Europe and Canada are being asked, mainly by the United States, to carry more of the load for their own defence."], [1, "And the biggest challenges at the moment?"], [2, "The first is Russia, both the war in Ukraine and the activity against Allies just below the level of an armed attack: drones entering airspace, sabotage of railways and cables, cyber attacks and nuclear threats. The legal difficulty is that most of this does not clearly count as an armed attack under Article Five, so Allies must use other tools, such as consultation, attribution, countermeasures and national criminal law."], [2, "The second is unity and burden-sharing. American commitment is being questioned, there are disagreements among Allies about threats and spending, and public opinion varies. Consensus decision-making makes these divisions visible. The third is turning the five percent pledge into real capability, which depends on industry, procurement and speed."], [2, "The fourth is the collapse of arms control. Most of the treaties that limited weapons between Russia and the West have ended or been suspended, which removes transparency and increases the risk of miscalculation. The fifth is technology: adopting drones, A I and space capabilities fast enough, while keeping control, security and lawful use. And in the background are China's growing power, instability to NATO's south, and terrorism."], [1, "Has anything changed in how NATO talks about itself?"], [2, "Yes. Recent summit declarations have become very short and focused on deliverables, such as spending and industrial capacity. The phrase international law no longer appears in them, although the Treaty and the Strategic Concept still anchor NATO in the U N Charter. For a lawyer, that is a useful observation to make carefully: the legal foundations are unchanged, but the language has shifted."], [1, "What does all this mean for legal work?"], [2, "Three things. More money and more joint buying means more procurement law, more contracts and more risk of fraud, so legal teams focus on standard terms, fair competition and integrity. New technology means new questions about data, cloud, A I, export control and intellectual property. And threats below the armed-attack threshold mean more work on what responses are lawful. In short, legal helps NATO move fast without breaking the rules that hold the alliance together."], [1, "A sentence to sum up?"], [2, "NATO is heading towards a stronger, faster, more digital collective defence, paid for by much higher spending, while trying to stay united and keep the U S engaged, and its lawyers make that speed lawful and safe."]]}, {"title": "Year One, the N C I A in Brussels", "ref": "Year 1 · NCIA", "mp3": "audio/NATO-Explained-06-Year-One-the-N-C-I-A-in-Brussels.mp3", "duration": 259.8, "times": [4.48, 9.8, 32.35, 34.1, 53.73, 58.4, 97.61, 100.3, 123.98, 147.09, 174.22, 177.58, 199.1, 202.56, 238.89, 241.81], "lines": [[1, "Your first rotation is the N C I A. What is it, in plain terms?"], [2, "It is NATO's technology agency. It runs the networks, secure communications and I T that let NATO consult and command, it defends NATO's own networks against cyber attacks, and it buys and delivers technology for NATO and for individual Allies. Without it, the Council could not meet securely and commanders could not share information."], [1, "How is it run?"], [2, "A board with one representative from each Ally supervises it. A General Manager runs it day to day. It has several thousand staff spread across campuses in Belgium, the Netherlands and Portugal, and many support sites. It is going through a reorganisation that puts customers and digital products at the centre."], [1, "You mentioned it is customer funded. What does that mean in practice?"], [2, "The N C I A does not get one big budget. Instead it works like an in-house supplier. NATO commands and Allies ask it for services or projects, and pay for them at cost, with no profit and no loss. NATO commands pay out of the common budgets. Individual Allies pay out of their own national budgets. Every relationship rests on a written framework that sets general rules on payment, liability, security, intellectual property and tax, and then specific orders under it, such as service level agreements or technical arrangements. Greece and Finland both have such frameworks with the N C I A."], [1, "So what does its legal office do?"], [2, "It is the agency's in-house counsel and reports to the General Manager. Its work falls into six areas. Procurement and contracts: helping buy technology fairly and quickly, checking tenders and contracts against NATO's standard terms, deciding whether a supplier's requested changes are acceptable, and handling complaints from losing bidders and disputes with contractors."], [2, "Agreements: drafting and checking the frameworks and service agreements with Allies and other NATO bodies, and checking who can sign them and whether the Council must approve. Cyber and data: making sure suppliers report incidents quickly, that personal data is protected under NATO's own data policy, and that cloud and A I contracts keep NATO in control of its data."], [2, "Export control and intellectual property: making sure licences for controlled technology let NATO use it where needed, and that NATO gets the rights it needs to use and share what it pays for. Employment: advising on NATO's own staff rules and defending the agency before the Administrative Tribunal. And status and governance: protecting immunities across host countries and checking that decisions are taken by the right person or board."], [1, "Why employment, if it is a tech agency?"], [2, "Because it is also a large employer, and its staff are not covered by national employment law. NATO has its own staff regulations, which act as the employment law, and its own tribunal. The current reorganisation, with posts changing and moving, produces exactly the kind of decisions that need legal checking and sometimes legal defence."], [1, "So what would the young professional actually do?"], [2, "The job description promises work on acquisitions, agreements, employment, cybersecurity, data protection and export control, plus legal research and drafting legal documents and decision memos. In practice that likely means reviewing contracts and supplier change requests, helping draft agreements with Allies, checking data and cyber clauses, researching questions such as whether immunity applies in a given case, helping prepare tribunal files, and writing short decision memos that set out a question, the options, the risks and a recommendation so a senior person can decide."], [1, "What is the main tension in the work?"], [2, "Speed against protection. The agency's customers want technology quickly. The lawyers must make sure that speed does not cost NATO its immunities, its control over data and intellectual property, fair competition between Allies' industries, or accountability for the money."]]}, {"title": "Year Two, H Q Sact in Norfolk", "ref": "Year 2 · HQ SACT", "mp3": "audio/NATO-Explained-07-Year-Two-H-Q-Sact-in-Norfolk.mp3", "duration": 257.8, "times": [4.27, 10.65, 37.62, 39.73, 78.04, 81.8, 112.86, 115.27, 153.96, 156.42, 190.04, 192.62, 231.51, 233.88], "lines": [[1, "Your second rotation is H Q Sact. What does Allied Command Transformation do?"], [2, "It is the half of NATO's military structure that looks to the future. Allied Command Operations runs today's operations. Allied Command Transformation works out what NATO's forces will need tomorrow and helps get them there. It develops military concepts and doctrine, leads NATO's work on future capabilities, runs training and exercises for commanders and headquarters, collects lessons learned, and experiments with new technology."], [1, "How is it organised?"], [2, "Its headquarters is in Norfolk, Virginia, under the Supreme Allied Commander Transformation. Below it are centres that do specific jobs: the Joint Warfare Centre in Norway, which trains headquarters through large exercises; the Joint Force Training Centre in Poland; a centre in Portugal that analyses lessons learned; and a centre that draws lessons from the war in Ukraine. It also has a staff element in Europe. And it coordinates around thirty Centres of Excellence, which are funded by groups of nations and focus on topics such as cyber defence, strategic communications or energy security."], [1, "What is special about H Q Sact legally?"], [2, "It is a legal person in its own right, under the Paris Protocol. So it can sign contracts and agreements. Its subordinate centres and the Centres of Excellence cannot sign in their own name. They act on H Q Sact's behalf, under written delegation. It can be sued in national courts, but its property cannot be seized, so protecting its immunities matters. And it works in the United States, so its status rests on the Paris Protocol, the Status of Forces Agreement and an agreement with the U S."], [1, "What does its legal office do?"], [2, "It sits in the commander's advisory group and serves the whole command, including the subordinate centres. Its work covers contracts for studies, experiments and contractor support under H Q Sact's own standard terms; agreements with nations, other NATO bodies, industry and universities, many of them non-binding memoranda of understanding with implementing arrangements underneath; the two sets of agreements behind each Centre of Excellence; personnel, claims and ethics; legal review of new concepts against international law, such as the law of armed conflict for autonomy or cyber; and the command's internal directives."], [1, "And the legal assistance part?"], [2, "That is distinctive. Staff and families from more than thirty nations live in Virginia, and the office runs a desk that helps them with visas, work permits for spouses, driving licences, leases, tax and status questions. It also deals with U S federal and Virginia authorities on those issues. The limit is important: immunity covers official acts only, so private debts, traffic offences and family matters are not covered, and the office advises staff but does not represent them against the headquarters."], [1, "What would the young professional do?"], [2, "The job description says support to the legal assistance team, including reviewing work authorisation applications and updating guides; work on cyber defence, space, engagement with industry and academia, contracting, innovation and new technologies; research and review of concepts and working groups; and drafting memoranda of understanding and implementing arrangements. American law students who interned there describe mornings at the legal assistance desk and afternoons on projects, such as updating the command's contract terms, researching NATO's own immunity, giving contracting guidance and drafting an internal directive."], [1, "What is the main tension here?"], [2, "Innovation against control. H Q Sact wants to experiment quickly with industry and universities, but every collaboration must stay fair to firms from all Allies, avoid implying future purchases, protect classified information and intellectual property, and not commit money without approval. The lawyer's job is to build light, fast instruments that still protect NATO."]]}, {"title": "Year Three, DIANA in London", "ref": "Year 3 · DIANA", "mp3": "audio/NATO-Explained-08-Year-Three-DIANA-in-London.mp3", "duration": 227.3, "times": [3.82, 7.56, 31.26, 32.93, 66.71, 69.4, 94.71, 100.23, 127.41, 130.4, 173.77, 176.16, 210.01, 212.96], "lines": [[1, "Your third rotation is DIANA. What is it?"], [2, "The Defence Innovation Accelerator for the North Atlantic. The Allies agreed to create it in twenty twenty-one, and it has been running since twenty twenty-three. Its job is to find start-ups and innovators with technologies that can solve defence and security problems, often dual-use technologies that also have civilian markets, and to help them develop, test and reach the people who would use them."], [1, "How does it work?"], [2, "Each year DIANA publishes challenges on themes NATO cares about. Innovators from Allied countries bid. Those selected join an accelerator programme, receive funding under a contract, get mentoring and business support, and can test their technology at test centres across the Alliance. DIANA connects them with investors who meet its rules on trusted capital, and with Allies that might buy their products. It now also runs a rapid adoption service, where it can place a contract with an innovator on behalf of an Ally that wants the technology."], [1, "How is DIANA organised?"], [2, "Its headquarters is in London, with a hub in Tallinn and an office in Halifax in Canada. It has a board with one director per Ally and a Managing Director. It is funded by all Allies through the common-funding formula, and it is audited every year by NATO's auditors. It shares NATO's legal personality and immunities, so in the U K, Estonia and Canada its status has to be recognised by each host country."], [1, "What is unusual about DIANA's approach compared with the other two postings?"], [2, "Intellectual property. The N C I A and H Q Sact generally want NATO to own or have strong rights over what they pay for. DIANA takes no intellectual property and no equity from innovators. The reason is that start-ups and their investors would walk away if NATO took ownership, and DIANA's whole purpose is to attract them. Instead, DIANA gets the rights it needs to use reports and results, and relies on Allies buying the products later."], [1, "What does DIANA's legal team do?"], [2, "The Office of the General Counsel advises the Managing Director, the board and other NATO bodies. Its work covers the contracts with innovators, which must be fast and simple but now include reporting and audit rights after the auditors found weak controls; the challenge rules and eligibility, including checking that innovators are owned and controlled by Allied nationals and not exposed to hostile investors; agreements with test centres, accelerator sites and host nations; the rapid adoption arrangements with Allies; DIANA's own suppliers; data shared with investors; export control when technology crosses borders for testing; and DIANA's privileges and immunities in three countries."], [1, "And the young professional's work?"], [2, "The job description says helping prepare and review agreements and memoranda of understanding, keeping documentation up to date, statistical and financial analysis, advising senior staff, and assessing how international, national and commercial law affects DIANA. In practice that likely means reviewing innovator contracts and partner agreements, tracking contracts, payments and spending for reports to the board and auditors, and researching questions such as how U K investment screening or export rules apply to an innovator."], [1, "What is the main tension at DIANA?"], [2, "Speed and attractiveness against accountability and security. DIANA has to feel like a start-up programme, quick and light, while spending common money from all Allies, keeping hostile capital out, and treating every Ally fairly."]]}, {"title": "How the three rotations join up", "ref": "The three together", "mp3": "audio/NATO-Explained-09-How-the-three-rotations-join-up.mp3", "duration": 194.1, "times": [3.84, 9.01, 42.62, 45.48, 72.03, 96.39, 111.05, 114.48, 146.33, 150.17, 188.25], "lines": [[1, "The last episode connects everything. How do the three postings fit together?"], [2, "Think of the journey a new technology takes into NATO. It often starts at DIANA, where a start-up with a promising idea is found, funded and tested. Then Allied Command Transformation, through H Q Sact, works out how that kind of technology fits into future warfare: it develops the concept, experiments with it, and helps decide what NATO should adopt. Then the N C I A buys it at scale, integrates it into NATO's networks, secures it and runs it for NATO and for Allies. Discover, develop, deliver."], [1, "And the legal thread through that journey?"], [2, "At each stage, lawyers solve a different version of the same problems. Intellectual property: DIANA leaves it with the innovator to attract investment, H Q Sact needs rights to experiment and share, and the N C I A needs rights to use, adapt and buy again without being locked in. NATO's procurement policy says NATO should not aim for full ownership unless it is critical, which pushes all three towards smart licensing rather than ownership."], [2, "Speed against fair competition: DIANA's rapid adoption service, H Q Sact's fast collaboration with industry, and the N C I A's procurement rules all try to move quickly while staying fair to firms from every Ally. Data and A I: each body must handle data lawfully and apply NATO's principles for responsible use of A I, and the N C I A turns those principles into contract terms."], [2, "Status and immunities: you will see them in three host countries, Belgium, the United States and the United Kingdom, under different agreements. And agreements with nations: frameworks and memoranda of understanding run through all three."], [1, "How does this connect to NATO's biggest purpose?"], [2, "NATO exists to protect its members, around a billion people, through collective defence. Defence now depends on staying ahead technologically, which the Allies have made a priority with more money and faster adoption. Each of your postings is a step in getting new technology from an idea to the forces, and lawyers are what make each step lawful, fair, secure and accountable. Without legal work, technology arrives late, or arrives in a way that gives away NATO's data, immunities or money."], [1, "And how would you describe the three years in one answer?"], [2, "In the first year, at the N C I A, you learn how NATO buys and runs technology and how an international organisation protects itself in contracts and as an employer. In the second year, at H Q Sact, you learn how the military side thinks about the future, how NATO works with nations, industry and universities, and how status law affects real people. In the third year, at DIANA, you learn how to make NATO attractive to innovators and investors while keeping it secure and accountable. Together, that is the full journey from idea to capability, seen through the eyes of the lawyer who makes it work."], [1, "That is the end of the series. Learn the ideas, and then write in your own words."]]}, {"title": "How to write your answers", "ref": "Writing", "mp3": "audio/NATO-Explained-10-How-to-write-your-answers.mp3", "duration": 410.5, "times": [3.24, 10.2, 31.9, 34.91, 64.77, 67.18, 86.15, 90.02, 128.01, 130.33, 160.26, 166.24, 200.54, 204.8, 228.27, 234.44, 254.56, 256.25, 278.69, 280.04, 298.6, 300.48, 320.68, 323.48, 344.37, 348.23, 370.89, 373.66, 393.36, 396.0], "lines": [[1, "This last episode is practical. You have not written essays for a while. How should you approach the written test?"], [2, "Start by remembering what it is. It is not a university exam. It is a sample of the work the job involves. The markers are NATO lawyers asking one question: could this person write something I could use tomorrow? So the goal is not to show everything you know. It is to answer the exact question, clearly, in the format asked for, with sound reasoning."], [1, "What should you do in the first few minutes?"], [2, "Read the whole paper before writing anything. See how many questions there are and how the marks are split, and divide your time to match. A question worth twice the marks gets twice the time. Then, for each question, underline three things: the task word, such as advise, explain, assess or draft; the audience, such as the Legal Adviser, a commander or a group of students; and the format, such as a memo, an essay, speaking notes or slides. Those three things decide your structure."], [1, "Then plan before writing?"], [2, "Always. Spend about a tenth of the time for each question planning. Write your conclusion first, in one sentence. Then list three or four points that support it, each with one fact or legal source. Then note one counter-argument or risk. If you can't state your answer in one sentence, you are not ready to write."], [1, "Let's take formats one by one. The legal memo."], [2, "Put the answer first. Open with a short executive summary: the question, your answer, and what you recommend. A busy reader should be able to stop there. Then give brief background and any assumptions, because exam facts are often incomplete. Then take each issue in turn, numbered. For each issue, say what the issue is, the rule that applies, how it applies to these facts, and your conclusion. Then give recommendations and next steps, saying who should do what. Finish with the questions you would ask to clarify the facts. If the task is a decision memo, make the very first line the decision you are asking for."], [1, "What makes a memo stand out?"], [2, "Practical answers. Don't stop at saying there is a risk. Say what to change, offer a fallback if the other side refuses, and say when to escalate. Use NATO's own reasoning: protect immunities, keep a reasonable alternative forum, protect NATO's data and intellectual property, treat firms from all Allies fairly, and spend common money accountably. Check who the legal person is and who has authority to sign. And be honest about uncertainty: say what you would need to check."], [1, "Now the essay, for example on NATO's challenges or the role of arms control."], [2, "Use a simple shape. An introduction of three or four sentences that answers the question directly and tells the reader your three points. Then three body paragraphs, one per point. Each paragraph starts with a sentence stating the point, then gives evidence, such as a fact, a decision or a treaty article, then explains why it matters for NATO. Then one paragraph that weighs things up: a counter-argument, a tension or a trade-off, and your judgement. Then a short conclusion that answers the question again in light of what you wrote, and ideally looks ahead."], [1, "How do you show you are a lawyer in an essay that isn't about law?"], [2, "Add one legal angle per point, briefly. For example: spending pledges are political commitments under Article Three, not legal obligations; most hybrid attacks fall below the armed-attack threshold of Article Five; arms control depends on verification and treaty compliance. One sentence each is enough. It marks you out without turning the essay into a law lecture."], [1, "What about if the question asks for your opinion, such as which challenge should be the priority?"], [2, "Give one, clearly, and justify it. Markers want judgement. A good formula is: I would prioritise this, because of these reasons, while recognising this limitation. Avoid sitting on the fence, and avoid strong political opinions on contested national issues. Keep it about NATO's interests and the evidence."], [1, "Speaking notes."], [2, "These are not prose. One page, bullet points the speaker can glance at. Start with a header line: who is speaking, to whom, why, and how long. Then three or four key messages, each with two or three short supporting points. Add a line for a likely difficult question, and a closing line. Mark anything sensitive as if asked, so the speaker only raises it when prompted."], [1, "Slides."], [2, "If asked for three slides, think: what it is, what it does, and why it matters now. Each slide has a headline that is a full message, not a label, and around five or six short bullets beneath. Add a speaker note if allowed. A good headline tells the story even if the audience reads nothing else."], [1, "An article summary."], [2, "Open with one sentence giving the article's main point. Then four to six bullets with its key facts and arguments, in order of importance, in your own words. Never add facts that are not in the article. If you are asked for relevance or comment, put it in a separate, labelled section at the end, so the reader can tell summary from opinion."], [1, "A speech outline or checklist."], [2, "For an outline: an opening hook, three sections each with one message and evidence, an example or story, and a closing call to action. For a checklist: one line per item, each starting with a verb, such as mention, stress, thank or avoid, grouped under headings such as context, NATO's contribution, partners, results and next steps."], [1, "Any writing habits that help across all formats?"], [2, "Several. Use headings and numbered points so the marker can follow you. Keep sentences short, one idea each. Use plain words. Name the source of a legal point, such as the Treaty article or the agreement. Be careful with figures: only use ones you are sure of, and round them if unsure. Don't copy the question back at length. And quote only short lines you know exactly."], [1, "And managing time on the day?"], [2, "Plan, write, then keep the last five minutes for checking. If you are running out of time on a question, switch to bullet points for the remaining sections, so the structure and your conclusions are still visible. A finished, structured answer beats a beautiful half-answer. And remember the rules: no notes, no tools, and every word your own."], [1, "So the method in one line?"], [2, "Read the whole paper, decode the task, audience and format, plan your answer in one sentence first, put the conclusion up front, structure everything visibly, add the legal angle, recommend something practical, and leave time to check."]]}];
+const SAY = {
+ "KFOR": "Kay-for",
+ "NSATU": "En-satoo",
+ "SACLANT": "Sack-lant",
+ "SACT": "Sackt",
+ "JATEC": "Jay-teck",
+ "LEGADs": "leg-ads",
+ "AWACS": "A-wacks",
+ "PURL": "Purl",
+ "SHAPE": "Shape",
+ "NATO": "Nato",
+ "DIANA": "Diana",
+ "SOFA": "Sofa",
+ "LEGAD": "leg-ad",
+ "U N": "U-N",
+ "U S": "U-S",
+ "U K": "U-K",
+ "E U": "E-U",
+ "A I": "A-I",
+ "Rutte": "Ruttuh"
+};
+
+const $ = id => document.getElementById(id);
+const audio = $("audio");
+let ep = 0, line = -1, mode = "rec", playing = false, ttsToken = 0;
+
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+};
+const fmt = s => { s = Math.max(0, Math.floor(s || 0)); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); };
+
+function renderEpisodes() {
+  $("eps").innerHTML = "";
+  EPISODES.forEach((e, i) => {
+    const b = document.createElement("button");
+    b.className = "ep"; b.type = "button";
+    b.setAttribute("aria-current", i === ep ? "true" : "false");
+    b.innerHTML = `<span>EP ${String(i + 1).padStart(2, "0")} · ${fmt(e.duration)} · ${e.ref}</span><b></b>`;
+    b.querySelector("b").textContent = e.title;
+    b.onclick = () => selectEpisode(i, true);
+    $("eps").appendChild(b);
+  });
+}
+
+function renderTranscript() {
+  const t = $("transcript"); t.innerHTML = "";
+  EPISODES[ep].lines.forEach(([spk, text], i) => {
+    const d = document.createElement("div");
+    d.className = "ln" + (spk === 1 ? " host" : ""); d.tabIndex = 0;
+    d.innerHTML = `<span class="who">${spk === 1 ? "Host" : "Expert"}</span><p></p>`;
+    d.querySelector("p").textContent = text;
+    d.onclick = () => playFrom(i);
+    d.onkeydown = ev => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); playFrom(i); } };
+    t.appendChild(d);
+  });
+}
+
+function selectEpisode(i, autoplay) {
+  stop();
+  ep = i; store.set("np2.ep", ep);
+  const e = EPISODES[ep];
+  $("nowTitle").textContent = `${ep + 1}. ${e.title}`;
+  $("nowRef").textContent = e.ref;
+  $("tAll").textContent = fmt(e.duration);
+  audio.src = e.mp3;
+  renderEpisodes(); renderTranscript();
+  const saved = store.get("np2.pos." + ep, 0);
+  setLine(saved > 0 ? lineAt(saved) : -1, false);
+  if (saved > 0) seek(saved);
+  updateTime(saved);
+  if (autoplay) play();
+}
+
+function lineAt(t) {
+  const ts = EPISODES[ep].times; let k = 0;
+  for (let i = 0; i < ts.length; i++) if (ts[i] <= t + 0.05) k = i;
+  return k;
+}
+
+function setLine(i, scroll) {
+  if (i === line) return;
+  const rows = $("transcript").children;
+  if (rows[line]) rows[line].classList.remove("on");
+  line = i;
+  if (rows[line]) {
+    rows[line].classList.add("on");
+    if (scroll) rows[line].scrollIntoView({ block: "center", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+  }
+  $("tLine").textContent = line >= 0 ? `line ${line + 1} of ${EPISODES[ep].lines.length}` : "";
+}
+
+function updateTime(t) {
+  const d = EPISODES[ep].duration;
+  $("tNow").textContent = fmt(t);
+  $("fill").style.width = (d ? Math.min(100, t / d * 100) : 0) + "%";
+}
+
+/* Recorded mode */
+function seek(t, then) {
+  const go = () => { audio.currentTime = t; then && then(); };
+  if (audio.readyState >= 1) go(); else audio.addEventListener("loadedmetadata", go, { once: true });
+}
+audio.ontimeupdate = () => {
+  if (mode !== "rec") return;
+  updateTime(audio.currentTime);
+  setLine(lineAt(audio.currentTime), true);
+  store.set("np2.pos." + ep, audio.currentTime);
+};
+audio.onended = () => {
+  store.set("np2.pos." + ep, 0);
+  if (ep < EPISODES.length - 1) selectEpisode(ep + 1, true); else { playing = false; syncButton(); }
+};
+audio.onplay = () => { playing = true; syncButton(); };
+audio.onpause = () => { if (mode === "rec") { playing = false; syncButton(); } };
+
+/* Browser-voice mode (the podcast skill's Web Speech approach, sentence by sentence) */
+const synth = window.speechSynthesis;
+let voices = {};
+const BLACKLIST = ["Albert","Bahh","Bells","Boing","Bubbles","Cellos","Deranged","Good News","Jester","Organ","Superstar","Trinoids","Whisper","Wobble","Zarvox","Bad News","Princess","Ralph","Junior","Flo"];
+function loadVoices() {
+  if (!synth) return;
+  const all = synth.getVoices().filter(v => v.lang.toLowerCase().startsWith("en") && !BLACKLIST.some(b => v.name.includes(b)));
+  const score = v => (/Neural|Natural/.test(v.name) ? 500 : 0) + (/Wavenet/.test(v.name) ? 400 : 0) + (/Premium|Enhanced/.test(v.name) ? 300 : 0)
+    + (/Microsoft/.test(v.name) ? 250 : /Google/.test(v.name) ? 200 : 150) + (/en-GB/i.test(v.lang) ? 120 : 0) + (v.localService ? 50 : 0);
+  const seen = new Set(), list = all.sort((a, b) => score(b) - score(a)).filter(v => { const n = v.name.split("(")[0].trim(); if (seen.has(n)) return false; seen.add(n); return true; });
+  voices = { 1: list[0], 2: list[1] || list[0] };
+  $("ttsNote").textContent = list.length
+    ? `Browser voices: ${voices[1].name} and ${voices[2].name}. For the best voices use Microsoft Edge on a computer or Safari on iPhone. Speech stops if the screen locks.`
+    : "This browser has no English speech voices. Use Recorded voices instead.";
+}
+if (synth) { loadVoices(); synth.onvoiceschanged = loadVoices; }
+
+const spoken = t => Object.entries(SAY).reduce((s, [k, v]) => s.replace(new RegExp("\\b" + k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b", "g"), v), t);
+function speakLine(i, token) {
+  return new Promise(resolve => {
+    const [spk, text] = EPISODES[ep].lines[i];
+    const parts = spoken(text).match(/[^.!?]+[.!?]+["')]*\s*|[^.!?]+$/g) || [text];
+    let k = 0;
+    const next = () => {
+      if (token !== ttsToken) return resolve(false);
+      if (k >= parts.length) return setTimeout(() => resolve(true), 350);
+      const u = new SpeechSynthesisUtterance(parts[k++].trim());
+      if (voices[spk]) { u.voice = voices[spk]; u.lang = voices[spk].lang; }
+      u.pitch = spk === 1 ? 1.05 : 0.88;
+      u.rate = (spk === 1 ? 0.95 : 0.93) * parseFloat($("speed").value);
+      u.onend = next; u.onerror = () => resolve(false);
+      synth.speak(u);
+    };
+    next();
+  });
+}
+async function ttsFrom(i) {
+  const token = ++ttsToken; playing = true; syncButton();
+  for (let k = i; k < EPISODES[ep].lines.length; k++) {
+    setLine(k, true); updateTime(EPISODES[ep].times[k]);
+    store.set("np2.pos." + ep, EPISODES[ep].times[k]);
+    if (!(await speakLine(k, token))) return;
+  }
+  if (token === ttsToken) { playing = false; syncButton(); }
+}
+
+/* Shared controls */
+function play() {
+  if (mode === "rec") { audio.playbackRate = parseFloat($("speed").value); audio.play().catch(() => {}); }
+  else ttsFrom(Math.max(0, line));
+}
+function pause() {
+  if (mode === "rec") audio.pause();
+  else { ttsToken++; synth && synth.cancel(); playing = false; syncButton(); }
+}
+function stop() { pause(); }
+function playFrom(i) {
+  if (mode === "rec") { setLine(i, true); seek(EPISODES[ep].times[i] + 0.01, play); }
+  else { ttsToken++; synth && synth.cancel(); setTimeout(() => ttsFrom(i), 60); }
+}
+function syncButton() { $("play").textContent = playing ? "Pause" : "Play"; }
+
+$("play").onclick = () => playing ? pause() : play();
+$("prev").onclick = () => playFrom(Math.max(0, line - 1));
+$("next").onclick = () => playFrom(Math.min(EPISODES[ep].lines.length - 1, line + 1));
+$("speed").onchange = () => { audio.playbackRate = parseFloat($("speed").value); store.set("np2.speed", $("speed").value); };
+$("bar").onclick = ev => {
+  const r = $("bar").getBoundingClientRect(), t = (ev.clientX - r.left) / r.width * EPISODES[ep].duration;
+  playFrom(lineAt(t));
+};
+$("bar").onkeydown = ev => {
+  if (ev.key === "ArrowRight") { ev.preventDefault(); $("next").click(); }
+  if (ev.key === "ArrowLeft") { ev.preventDefault(); $("prev").click(); }
+};
+document.querySelectorAll('input[name="mode"]').forEach(r => r.onchange = () => {
+  const wasPlaying = playing, at = Math.max(0, line);
+  pause(); mode = r.value; store.set("np2.mode", mode);
+  $("ttsNote").hidden = mode !== "tts"; $("recNote").hidden = mode === "tts";
+  if (!synth && mode === "tts") { $("ttsNote").hidden = false; $("ttsNote").textContent = "This browser does not support speech. Use Recorded voices instead."; }
+  if (wasPlaying) playFrom(at);
+});
+
+$("speed").value = store.get("np2.speed", "1");
+const savedMode = store.get("np2.mode", "rec");
+if (savedMode === "tts") { $("modeTts").checked = true; mode = "tts"; $("ttsNote").hidden = false; $("recNote").hidden = true; }
+selectEpisode(Math.min(EPISODES.length - 1, store.get("np2.ep", 0)), false);
+
+// Lock-screen controls and app shell
+function setMedia(){ if(!("mediaSession" in navigator)) return;
+  const e=EPISODES[ep];
+  navigator.mediaSession.metadata=new MediaMetadata({title:e.title,artist:"NATO Explained",album:"Episode "+(ep+1),artwork:[{src:"icon-512.png",sizes:"512x512",type:"image/png"}]});
+}
+if("mediaSession" in navigator){
+  navigator.mediaSession.setActionHandler("play",()=>play());
+  navigator.mediaSession.setActionHandler("pause",()=>pause());
+  navigator.mediaSession.setActionHandler("previoustrack",()=>{ if(ep>0) selectEpisode(ep-1,true); });
+  navigator.mediaSession.setActionHandler("nexttrack",()=>{ if(ep<EPISODES.length-1) selectEpisode(ep+1,true); });
+  try{ navigator.mediaSession.setActionHandler("seekbackward",()=>{audio.currentTime=Math.max(0,audio.currentTime-15);}); }catch(e){}
+  try{ navigator.mediaSession.setActionHandler("seekforward",()=>{audio.currentTime=Math.min(audio.duration||0,audio.currentTime+15);}); }catch(e){}
+}
+audio.addEventListener("play",setMedia);
+if("serviceWorker" in navigator){ window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{})); }
+</script>
+</body>
+</html>
